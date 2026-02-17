@@ -67,9 +67,9 @@ const App = () => {
   };
 
   const t = {
-    kz: { name: "VKO TRAVEL", creator: "Жанболатұлы Бекжан", slogan: "Шығыс маржанына саяхат", desc: "Алтайдың асқақ таулары мен Марқакөлдің мөлдір суын бізбен бірге ашыңыз.", home: "Басты бет", map: "Карта", places: "Көрікті жерлер", tours: "Турлар", hotels: "Отельдер", food: "Мейрамханалар", chat: "AI Ассистент", btn: "Бастау", ask: "Сұрақ қойыңыз..." },
-    ru: { name: "VKO TRAVEL", creator: "Жанболатұлы Бекжан", slogan: "Жемчужина Востока", desc: "Откройте величие Алтая и кристальные воды Маркаколя вместе с нами.", home: "Главная", map: "Карта", places: "Места", tours: "Туры", hotels: "Отели", food: "Рестораны", chat: "AI Гид", btn: "Начать", ask: "Задайте вопрос..." },
-    en: { name: "VKO TRAVEL", creator: "Zhanbolatuly Bekzhan", slogan: "Pearl of the East", desc: "Discover the majesty of Altai and the crystal waters of Markakol.", home: "Home", map: "Map", places: "Sightseeing", tours: "Tours", hotels: "Hotels", food: "Restaurants", chat: "AI Assistant", btn: "Explore", ask: "Ask anything..." }
+    kz: { name: "VKO TRAVEL by Bekzhan", creator: "Жанболатұлы Бекжан", slogan: "Шығыс маржанына саяхат", desc: "Алтайдың асқақ таулары мен Марқакөлдің мөлдір суын бізбен бірге ашыңыз.", home: "Басты бет", map: "Карта", places: "Көрікті жерлер", tours: "Турлар", hotels: "Отельдер", food: "Мейрамханалар", chat: "AI Ассистент", btn: "Бастау", ask: "Сұрақ қойыңыз..." },
+    ru: { name: "VKO TRAVEL by Bekzhan", creator: "Жанболатұлы Бекжан", slogan: "Жемчужина Востока", desc: "Откройте величие Алтая и кристальные воды Маркаколя вместе с нами.", home: "Главная", map: "Карта", places: "Места", tours: "Туры", hotels: "Отели", food: "Рестораны", chat: "AI Гид", btn: "Начать", ask: "Задайте вопрос..." },
+    en: { name: "VKO TRAVEL by Bekzhan", creator: "Zhanbolatuly Bekzhan", slogan: "Pearl of the East", desc: "Discover the majesty of Altai and the crystal waters of Markakol.", home: "Home", map: "Map", places: "Sightseeing", tours: "Tours", hotels: "Hotels", food: "Restaurants", chat: "AI Assistant", btn: "Explore", ask: "Ask anything..." }
   }[lang];
 
   return (
@@ -215,4 +215,5 @@ const NavBtn = ({ label, icon: Icon, act, onClick }) => (
 
 
 export default App;
+
 
