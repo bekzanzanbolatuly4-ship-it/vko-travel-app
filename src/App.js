@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Compass, Star, Hotel, Utensils, MessageSquare, Layers, Menu, ChevronLeft, Send, Sparkles, Award } from 'lucide-react';
+import { Home, Compass, Star, Hotel, Utensils, MessageSquare, Layers, Menu, ChevronLeft, Send, Sparkles, MapPin, Award } from 'lucide-react';
 import { load } from '@2gis/mapgl';
 
 const App = () => {
@@ -17,7 +17,7 @@ const App = () => {
   const chatEndRef = useRef(null);
 
   useEffect(() => {
-    axios.get('https://vko-travel-app-2.onrender.com/')
+    axios.get('http://127.0.0.1:8000/api/places')
       .then(res => setPlaces(Array.isArray(res.data) ? res.data : []))
       .catch(() => setPlaces([]));
   }, []);
@@ -67,9 +67,9 @@ const App = () => {
   };
 
   const t = {
-    kz: { name: "VKO TRAVEL by Bekzhan", creator: "Жанболатұлы Бекжан", slogan: "Шығыс маржанына саяхат", desc: "Алтайдың асқақ таулары мен Марқакөлдің мөлдір суын бізбен бірге ашыңыз.", home: "Басты бет", map: "Карта", places: "Көрікті жерлер", tours: "Турлар", hotels: "Отельдер", food: "Мейрамханалар", chat: "AI Ассистент", btn: "Бастау", ask: "Сұрақ қойыңыз..." },
-    ru: { name: "VKO TRAVEL by Bekzhan", creator: "Жанболатұлы Бекжан", slogan: "Жемчужина Востока", desc: "Откройте величие Алтая и кристальные воды Маркаколя вместе с нами.", home: "Главная", map: "Карта", places: "Места", tours: "Туры", hotels: "Отели", food: "Рестораны", chat: "AI Гид", btn: "Начать", ask: "Задайте вопрос..." },
-    en: { name: "VKO TRAVEL by Bekzhan", creator: "Zhanbolatuly Bekzhan", slogan: "Pearl of the East", desc: "Discover the majesty of Altai and the crystal waters of Markakol.", home: "Home", map: "Map", places: "Sightseeing", tours: "Tours", hotels: "Hotels", food: "Restaurants", chat: "AI Assistant", btn: "Explore", ask: "Ask anything..." }
+    kz: { name: "VKO TRAVEL", creator: "Жанболатұлы Бекжан", slogan: "Шығыс маржанына саяхат", desc: "Алтайдың асқақ таулары мен Марқакөлдің мөлдір суын бізбен бірге ашыңыз.", home: "Басты бет", map: "Карта", places: "Көрікті жерлер", tours: "Турлар", hotels: "Отельдер", food: "Мейрамханалар", chat: "AI Ассистент", btn: "Бастау", ask: "Сұрақ қойыңыз..." },
+    ru: { name: "VKO TRAVEL", creator: "Жанболатұлы Бекжан", slogan: "Жемчужина Востока", desc: "Откройте величие Алтая и кристальные воды Маркаколя вместе с нами.", home: "Главная", map: "Карта", places: "Места", tours: "Туры", hotels: "Отели", food: "Рестораны", chat: "AI Гид", btn: "Начать", ask: "Задайте вопрос..." },
+    en: { name: "VKO TRAVEL", creator: "Zhanbolatuly Bekzhan", slogan: "Pearl of the East", desc: "Discover the majesty of Altai and the crystal waters of Markakol.", home: "Home", map: "Map", places: "Sightseeing", tours: "Tours", hotels: "Hotels", food: "Restaurants", chat: "AI Assistant", btn: "Explore", ask: "Ask anything..." }
   }[lang];
 
   return (
@@ -213,9 +213,4 @@ const NavBtn = ({ label, icon: Icon, act, onClick }) => (
   </div>
 );
 
-
 export default App;
-
-
-
-
