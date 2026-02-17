@@ -17,7 +17,7 @@ const App = () => {
   const chatEndRef = useRef(null);
 
   useEffect(() => {
-    axios.get('https://vko-travel-app-1.onrender.com/')
+    axios.get('https://vko-travel-app-2.onrender.com/')
       .then(res => setPlaces(Array.isArray(res.data) ? res.data : []))
       .catch(() => setPlaces([]));
   }, []);
@@ -215,6 +215,7 @@ const NavBtn = ({ label, icon: Icon, act, onClick }) => (
 
 
 export default App;
+
 
 
 
