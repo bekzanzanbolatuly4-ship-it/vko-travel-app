@@ -3,4 +3,4 @@ uvicorn
 groq
 pydantic
 pydantic-settings
-slowapi
+python-dotenv
