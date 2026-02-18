@@ -58,7 +58,7 @@ const App = () => {
       input.value = '';
       setIsAiLoading(true);
       try {
-        const res = await axios.post('http://127.0.0.1:8000/api/chat', { message: msg, lang: lang });
+        const res = await axios.post('https://vko-travel-app.onrender.com/', { message: msg, lang: lang });
         setChatHistory(prev => [...prev, { role: 'ai', text: res.data.reply }]);
       } catch {
         setChatHistory(prev => [...prev, { role: 'ai', text: "Байланыс үзілді..." }]);
@@ -214,4 +214,5 @@ const NavBtn = ({ label, icon: Icon, act, onClick }) => (
 );
 
 export default App;
+
 
