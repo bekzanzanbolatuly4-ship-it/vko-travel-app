@@ -1,15 +1,13 @@
 import os
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List
 from groq import Groq
 from dotenv import load_dotenv
 
 load_dotenv()
 app = FastAPI()
 
-# Frontend-пен байланыс орнату үшін
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,30 +15,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-client = Groq(api_key=os.getenv("GROQ_API_KEY", "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"))
+# AI Баптау (Сен берген промпт осында)
+SYSTEM_PROMPT = """
+SYSTEM ROLE: Kazakhstan Travel Assistant
+You are a professional AI travel assistant specialized exclusively in Kazakhstan.
+Your goal is to provide practical, structured, and realistic travel guidance. 
+1. Always detect and reply in the user's language.
+2. If key information is missing, ask short clarifying questions.
+3. Use the exact structure: 📍 Overview, 🗓 Duration, 🗺 Itinerary, 💰 Budget, 🚗 Transport, 🍽 Food, 📸 Photo Spots, ⚠ Safety, 🌦 Season.
+"""
 
-class Message(BaseModel):
-    role: str
-    content: str
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 class ChatRequest(BaseModel):
-    history: List[Message]
-
-@app.get("/")
-def read_root():
-    return {"status": "VKO Travel Backend is running"}
+    history: list
 
 @app.post("/api/chat")
 async def chat(request: ChatRequest):
-    try:
-        messages = [
-            {"role": "system", "content": "Сен Қазақстан бойынша кәсіби саяхатшы-гидсің. Жауаптарыңды әдемі, құрылымды және қазақ тілінде бер."}
-        ] + [m.dict() for m in request.history]
-        
-        completion = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=messages
-        )
-        return {"response": completion.choices[0].message.content}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}] + request.history
+    completion = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=messages
+    )
+    return {"response": completion.choices[0].message.content}
