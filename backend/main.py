@@ -1,76 +1,130 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+
 import os
-import json
-from groq import Groq
+import uuid
+import logging
+from typing import List, Literal
+from contextlib import asynccontextmanager
 
-app = FastAPI()
+from fastapi import FastAPI, HTTPException, Request, status, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field, validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from groq import Groq, GroqError
 
-# Frontend (Vercel) серверіне рұқсат беру
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+# --- Configuration ---
+
+class Settings(BaseSettings):
+    GROQ_API_KEY: str
+    ALLOWED_ORIGINS: List[str] = ["https://vko-travel-app.vercel.app"]
+    MODEL_NAME: str = "llama-3.3-70b-versatile"
+    MAX_HISTORY_LENGTH: int = 10
+    REQUEST_TIMEOUT: float = 30.0
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+settings = Settings()
+
+# --- Logging ---
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s - %(message)s [RequestID: %(request_id)s]"
 )
+logger = logging.getLogger("production_backend")
 
-# Groq Клиенті - Сенің API кілтің
-client = Groq(api_key="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")
+# --- Schemas ---
+
+class Message(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(..., min_length=1, max_length=2000)
+
+    @validator("content")
+    def sanitize_content(cls, v):
+        return v.strip()
 
 class ChatRequest(BaseModel):
-    message: str
+    history: List[Message]
 
-# 1. Сервердің тірі екенін тексеру
-@app.get("/")
-async def root():
-    return {"status": "active", "agent": "Kazakhstan Travel AI"}
+# --- State & Rate Limiting ---
 
-# 2. Жергілікті деректер қорын алу (places.json)
-@app.get("/api/places")
-async def get_places():
-    try:
-        file_path = os.path.join(os.path.dirname(__file__), "places.json")
-        with open(file_path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception as e:
-        return {"error": "File not found", "details": str(e)}
+limiter = Limiter(key_func=get_remote_address)
 
-# 3. ЕҢ МАҢЫЗДЫСЫ: Ақылды ИИ Чат
-@app.post("/api/chat")
-async def chat(request: ChatRequest):
-    try:
-        # СЕН БЕРГЕН КӘСІБИ SYSTEM ROLE
-        system_instructions = """
-        SYSTEM ROLE: Kazakhstan Travel Assistant
-        You are a professional AI travel assistant specialized exclusively in Kazakhstan.
-        Your goal is to provide practical, structured, and realistic travel guidance.
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    app.state.client = Groq(api_key=settings.GROQ_API_KEY)
+    yield
 
-        CORE RULES:
-        1. Always detect and reply in the user's language (Kazakh, Russian, or English).
-        2. If key information is missing (city, duration, budget), ask a short clarifying question.
-        3. Structure travel plans with: 📍 Overview, 🗓 Duration, 🗺 Itinerary, 💰 Budget, 🚗 Transport, 🍽 Food, 📸 Photo Spots.
-        4. Never provide fictional places.
-        5. Stay neutral, informative, and practical. No long-winded philosophy.
-        """
+app = FastAPI(lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-        completion = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": system_instructions},
-                {"role": "user", "content": request.message}
-            ],
-            temperature=0.7, # Шығармашылық пен нақтылық тепе-теңдігі
-            max_tokens=2048
-        )
-        
-        return {"response": completion.choices[0].message.content}
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["POST"],
+    allow_headers=["Content-Type", "Authorization"],
+)
+
+# --- Logic ---
+
+SYSTEM_PROMPT = {
+    "role": "system",
+    "content": (
+        "You are a professional Kazakhstan Travel Assistant by BEKZHAN. "
+        "Strictly provide factual information about travel in Kazakhstan. "
+        "Structure: 📍 Overview, 🗓 Duration, 🗺 Itinerary, 💰 Budget, 🚗 Transport. "
+        "Language: Match the user's input language. Be concise."
+    )
+}
+
+@app.middleware("http")
+async def add_request_id(request: Request, call_next):
+    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
+    request.state.request_id = request_id
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
+
+@app.post("/api/chat", status_code=status.HTTP_200_OK)
+@limiter.limit("10/minute")
+async def chat(request: Request, payload: ChatRequest):
+    request_id = request.state.request_id
     
-    except Exception as e:
-        print(f"Error: {e}")
-        return {"response": "Кешіріңіз, қазір байланыс орнату мүмкін болмады. Серверді тексеріп көріңіз."}
+    try:
+        # Hardened history trimming
+        trimmed_history = payload.history[-settings.MAX_HISTORY_LENGTH:]
+        
+        messages = [SYSTEM_PROMPT]
+        for msg in trimmed_history:
+            messages.append(msg.dict())
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+        logger.info(f"Processing chat request with {len(messages)} total messages.", extra={"request_id": request_id})
+
+        completion = app.state.client.chat.completions.create(
+            model=settings.MODEL_NAME,
+            messages=messages,
+            temperature=0.3,
+            max_tokens=1500,
+            timeout=settings.REQUEST_TIMEOUT
+        )
+
+        response_text = completion.choices[0].message.content
+        if not response_text:
+            raise ValueError("Upstream AI returned empty content")
+
+        return {"response": response_text}
+
+    except GroqError as e:
+        logger.error(f"Groq API Error: {str(e)}", extra={"request_id": request_id})
+        raise HTTPException(status_code=502, detail="AI Gateway unavailable")
+    except Exception as e:
+        logger.error(f"Internal Error: {str(e)}", extra={"request_id": request_id})
+        raise HTTPException(status_code=500, detail="Service encountered an internal error")
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
