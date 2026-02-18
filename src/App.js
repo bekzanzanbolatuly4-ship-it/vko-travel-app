@@ -1,22 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { 
-  Home, Sparkles, MapPin, Map as MapIcon, Calendar, Calculator, CloudSun, 
-  ShieldAlert, User, Send, Trash2, ArrowRight, Globe, Star, 
-  Camera, Download, Search, Filter, Navigation, Info, ChevronRight,
-  Settings, Heart, Share2, Compass, Plane, Smartphone, Menu, X
+  Home, Sparkles, MapPin, Calculator, CloudSun, ShieldAlert, 
+  User, Send, Trash2, ArrowRight, Star, ChevronRight, Menu, X 
 } from 'lucide-react';
 
-// СЕНІҢ API СІЛТЕМЕҢ (ТЕКСЕРІЛДІ)
+// СЕНІҢ БЭКЕНД СІЛТЕМЕҢ
 const API_URL = "https://vko-travel-app.onrender.com";
 
-/**
- * ARCHITECT: BEKZHAN
- * PROJECT: VKO TRAVEL ENTERPRISE PRO
- * LINES: > 450
- */
-
-// ЛОКАЦИЯЛАР БАЗАСЫ (30 ДАНА)
+// ЛОКАЦИЯЛАР (30 ДАНА)
 const DESTINATIONS = [
   { id: 1, name: "Belukha Peak", cat: "Mountains", reg: "VKO", img: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800", rate: 5.0 },
   { id: 2, name: "Markakol Lake", cat: "Lakes", reg: "VKO", img: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800", rate: 4.8 },
@@ -51,155 +43,107 @@ const DESTINATIONS = [
 ];
 
 export default function App() {
-  // STATE MANAGEMENT
   const [tab, setTab] = useState('home');
-  const [lang, setLang] = useState('kz');
   const [chat, setChat] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [budget, setBudget] = useState({ home: 0, food: 0, trans: 0, other: 0 });
-  const [isMobileMenu, setIsMobileMenu] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [budget, setBudget] = useState({ home: 0, food: 0, trans: 0, fun: 0 });
   
   const scrollRef = useRef(null);
+  useEffect(() => { scrollRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chat]);
 
-  useEffect(() => {
-    scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chat]);
-
-  // AI API CALL
-  const askAI = async () => {
+  // AI-мен байланыс
+  const handleSend = async () => {
     if (!input.trim() || loading) return;
-    const history = [...chat, { role: 'user', content: input }];
-    setChat(history);
+    const newHistory = [...chat, { role: 'user', content: input }];
+    setChat(newHistory);
     setInput("");
     setLoading(true);
 
     try {
-      const response = await axios.post(`${API_URL}/api/chat`, { history });
-      setChat([...history, { role: 'assistant', content: response.data.response }]);
+      const res = await axios.post(`${API_URL}/api/chat`, { history: newHistory });
+      setChat([...newHistory, { role: 'assistant', content: res.data.response }]);
     } catch (err) {
-      setChat([...history, { role: 'assistant', content: "Қате: Сервер жауап бермейді. Render-ді тексеріңіз!" }]);
+      setChat([...newHistory, { role: 'assistant', content: "Қате: Бэкенд жауап бермейді. Сілтемені тексеріңіз." }]);
     }
     setLoading(false);
   };
 
-  const calculateTotal = () => Object.values(budget).reduce((a, b) => Number(a) + Number(b), 0);
-
-  // UI COMPONENTS
-  const NavItem = ({ id, icon: Icon, label }) => (
-    <button 
-      onClick={() => { setTab(id); setIsMobileMenu(false); }}
-      className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 ${tab === id ? 'bg-blue-600 shadow-xl text-white' : 'text-slate-400 hover:bg-white/5'}`}
-    >
-      <Icon size={20} />
-      <span className="font-bold text-xs uppercase tracking-widest">{label}</span>
+  const NavLink = ({ id, icon: Icon, text }) => (
+    <button onClick={() => { setTab(id); setIsMenuOpen(false); }} className={`flex items-center gap-4 w-full p-4 rounded-2xl transition-all ${tab === id ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-white/5'}`}>
+      <Icon size={20} /> <span className="font-bold text-xs uppercase tracking-widest">{text}</span>
     </button>
   );
 
   return (
-    <div className="flex h-screen bg-[#010409] text-white font-sans overflow-hidden">
+    <div className="flex h-screen bg-[#010409] text-white overflow-hidden font-sans">
       
       {/* SIDEBAR */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#0d1117] border-r border-white/5 p-6 transform transition-transform duration-300 lg:relative lg:translate-x-0 ${isMobileMenu ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="mb-12 flex justify-between items-center px-2">
-          <div>
-            <h1 className="text-2xl font-black text-blue-500 italic">VKO PRO</h1>
-            <p className="text-[10px] font-bold text-slate-500 tracking-[0.3em]">BY BEKZHAN</p>
-          </div>
-          <button className="lg:hidden" onClick={() => setIsMobileMenu(false)}><X/></button>
+      <aside className={`fixed lg:relative z-50 inset-y-0 left-0 w-72 bg-[#0d1117] border-r border-white/5 p-6 transform transition-transform ${isMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+        <div className="mb-12 flex justify-between items-center">
+          <h1 className="text-2xl font-black text-blue-500 italic uppercase">VKO Travel</h1>
+          <button className="lg:hidden" onClick={() => setIsMenuOpen(false)}><X/></button>
         </div>
-        
         <nav className="space-y-2">
-          <NavItem id="home" icon={Home} label="Басты бет" />
-          <NavItem id="ai" icon={Sparkles} label="AI Planner" />
-          <NavItem id="dest" icon={MapPin} label="Орындар" />
-          <NavItem id="budget" icon={Calculator} label="Бюджет" />
-          <NavItem id="weather" icon={CloudSun} label="Ауа райы" />
-          <NavItem id="safety" icon={ShieldAlert} label="Қауіпсіздік" />
-          <NavItem id="profile" icon={User} label="Профиль" />
+          <NavLink id="home" icon={Home} text="Басты бет" />
+          <NavLink id="ai" icon={Sparkles} text="AI Ассистент" />
+          <NavLink id="dest" icon={MapPin} text="Орындар" />
+          <NavLink id="budget" icon={Calculator} text="Бюджет" />
+          <NavLink id="weather" icon={CloudSun} text="Ауа райы" />
+          <NavLink id="safety" icon={ShieldAlert} text="Қауіпсіздік" />
+          <NavLink id="profile" icon={User} text="Профиль" />
         </nav>
-
-        <div className="mt-auto pt-10 flex gap-2">
-          {['kz','ru','en'].map(l => (
-            <button key={l} onClick={() => setLang(l)} className={`flex-1 py-2 rounded-xl text-xs font-black ${lang === l ? 'bg-blue-600' : 'bg-white/5 opacity-40'}`}>{l.toUpperCase()}</button>
-          ))}
-        </div>
       </aside>
 
-      {/* MAIN CONTENT */}
+      {/* MAIN */}
       <main className="flex-1 overflow-y-auto p-6 lg:p-12 relative no-scrollbar">
-        
-        {/* Mobile Header */}
-        <div className="lg:hidden flex justify-between items-center mb-6">
-           <h2 className="text-xl font-black italic">VKO PRO</h2>
-           <button onClick={() => setIsMobileMenu(true)}><Menu/></button>
-        </div>
+        <button className="lg:hidden mb-6" onClick={() => setIsMenuOpen(true)}><Menu/></button>
 
-        {/* TAB 1: HOME */}
+        {/* HOME TAB */}
         {tab === 'home' && (
-          <div className="space-y-16 animate-in fade-in duration-700">
-            <header className="relative h-[60vh] rounded-[3rem] overflow-hidden flex items-center p-8 lg:p-16 border border-white/5">
-              <img src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1600" className="absolute inset-0 w-full h-full object-cover opacity-40" alt="Hero" />
-              <div className="relative z-10 space-y-6 max-w-2xl">
-                <h2 className="text-6xl lg:text-8xl font-black italic uppercase leading-none tracking-tighter">Explore <br/><span className="text-blue-600">Kazakhstan</span></h2>
-                <p className="text-slate-400 font-medium text-lg italic">Қазақстанның ең әдемі жерлерін біздің AI көмегімен жоспарлаңыз.</p>
-                <button onClick={() => setTab('ai')} className="bg-white text-black px-10 py-4 rounded-2xl font-black uppercase text-xs flex items-center gap-3 hover:bg-blue-600 hover:text-white transition-all">Сапарды бастау <ArrowRight size={16}/></button>
+          <div className="space-y-12 animate-in fade-in">
+            <header className="relative h-[60vh] rounded-[3rem] overflow-hidden flex items-center p-12 border border-white/5">
+              <img src="https://images.unsplash.com/photo-1533512140441-3832320b3363?w=1600" className="absolute inset-0 w-full h-full object-cover opacity-30" alt="VKO" />
+              <div className="relative z-10 space-y-6">
+                <h2 className="text-7xl font-black italic uppercase leading-none">Explore <br/><span className="text-blue-600">East Qazaqstan</span></h2>
+                <p className="text-slate-400 max-w-md italic">Бекжан ұсынған Шығыс Қазақстанның ең керемет жерлерін AI-мен бірге ашыңыз.</p>
+                <button onClick={() => setTab('ai')} className="bg-white text-black px-10 py-4 rounded-2xl font-black uppercase text-xs flex items-center gap-2 hover:bg-blue-600 hover:text-white transition-all">Бастау <ArrowRight size={16}/></button>
               </div>
             </header>
-
-            <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-               {DESTINATIONS.slice(0, 6).map(d => (
-                 <div key={d.id} className="h-64 rounded-[2.5rem] overflow-hidden relative group">
-                    <img src={d.img} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-700" alt={d.name} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
-                    <div className="absolute bottom-6 left-6">
-                       <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">{d.cat}</p>
-                       <h3 className="text-xl font-black italic uppercase">{d.name}</h3>
-                    </div>
-                 </div>
-               ))}
-            </section>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {DESTINATIONS.slice(0, 3).map(d => (
+                <div key={d.id} className="h-64 rounded-[2.5rem] overflow-hidden relative group">
+                  <img src={d.img} className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:scale-110 transition-all duration-700" alt={d.name} />
+                  <div className="absolute bottom-6 left-6 font-black italic uppercase">{d.name}</div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
-        {/* TAB 2: AI PLANNER */}
+        {/* AI CHAT TAB */}
         {tab === 'ai' && (
-          <div className="max-w-4xl mx-auto h-[80vh] flex flex-col bg-[#0d1117] rounded-[3rem] border border-white/5 shadow-2xl overflow-hidden animate-in slide-in-from-bottom-5">
-            <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-600 rounded-xl"><Sparkles size={20}/></div>
-                <h3 className="font-black italic uppercase tracking-tighter">AI Travel Planner</h3>
-              </div>
-              <button onClick={() => setChat([])} className="text-red-500 p-2 hover:bg-red-500/10 rounded-xl transition-all"><Trash2 size={20}/></button>
+          <div className="max-w-4xl mx-auto h-[80vh] flex flex-col bg-[#0d1117] rounded-[3rem] border border-white/5 overflow-hidden shadow-2xl">
+            <div className="p-6 border-b border-white/5 bg-white/5 flex justify-between items-center">
+              <div className="flex items-center gap-3"><Sparkles className="text-blue-500" /> <span className="font-black uppercase italic">AI Travel Expert</span></div>
+              <button onClick={() => setChat([])} className="text-red-500 hover:bg-red-500/10 p-2 rounded-xl transition-all"><Trash2 size={20}/></button>
             </div>
-
             <div className="flex-1 overflow-y-auto p-8 space-y-6 no-scrollbar">
-              {chat.length === 0 && (
-                <div className="h-full flex flex-col items-center justify-center text-center opacity-20 italic">
-                  <Globe size={80} className="mb-4" />
-                  <p className="text-xl font-black uppercase">Қай жерге барғыңыз келеді? Жазыңыз...</p>
-                </div>
-              )}
+              {chat.length === 0 && <div className="h-full flex flex-col items-center justify-center opacity-20 italic font-black uppercase"><Star size={60} className="mb-4"/> Сапарды жоспарлауды бастаңыз...</div>}
               {chat.map((m, i) => (
                 <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] p-6 rounded-[2rem] text-sm leading-relaxed ${m.role === 'user' ? 'bg-blue-600 text-white rounded-br-none shadow-lg' : 'bg-[#161b22] border border-white/5 rounded-bl-none text-slate-200 shadow-xl italic'}`}>
-                    <pre className="whitespace-pre-wrap font-sans">{m.content}</pre>
+                  <div className={`max-w-[80%] p-6 rounded-[2rem] ${m.role === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-[#161b22] text-slate-200 border border-white/5 rounded-bl-none'}`}>
+                    <pre className="whitespace-pre-wrap font-sans text-sm">{m.content}</pre>
                   </div>
                 </div>
               ))}
               <div ref={scrollRef} />
             </div>
-
             <div className="p-6 bg-black/20">
               <div className="flex gap-4 p-2 bg-[#0d1117] rounded-2xl border border-white/10 focus-within:border-blue-600 transition-all">
-                <input 
-                  value={input} 
-                  onChange={e => setInput(e.target.value)} 
-                  onKeyDown={e => e.key === 'Enter' && askAI()}
-                  placeholder="Сапар бағытын немесе қаланы жазыңыз..." 
-                  className="flex-1 bg-transparent px-4 outline-none font-bold text-sm"
-                />
-                <button onClick={askAI} disabled={loading} className={`p-4 rounded-xl transition-all ${loading ? 'bg-slate-800 animate-pulse' : 'bg-blue-600 hover:scale-105 shadow-lg'}`}>
+                <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSend()} placeholder="Сұрақ қойыңыз..." className="flex-1 bg-transparent px-4 outline-none font-bold" />
+                <button onClick={handleSend} disabled={loading} className="p-4 bg-blue-600 rounded-xl hover:scale-105 transition-all">
                   {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Send size={20}/>}
                 </button>
               </div>
@@ -207,84 +151,55 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 3: DESTINATIONS */}
+        {/* DESTINATIONS TAB */}
         {tab === 'dest' && (
-          <div className="space-y-10 animate-in zoom-in duration-500">
-             <div className="flex justify-between items-end">
-                <div>
-                   <h2 className="text-5xl font-black italic uppercase tracking-tighter">Destinations</h2>
-                   <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Total: 30 Locations Found</p>
+          <div className="space-y-10 animate-in zoom-in">
+            <h2 className="text-5xl font-black italic uppercase tracking-tighter">Top 30 <span className="text-blue-600">Locations</span></h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {DESTINATIONS.map(d => (
+                <div key={d.id} className="bg-[#161b22] rounded-[2.5rem] overflow-hidden border border-white/5 hover:border-blue-500/50 transition-all group">
+                  <div className="h-40 relative overflow-hidden">
+                    <img src={d.img} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-500" alt={d.name} />
+                    <div className="absolute top-3 right-3 bg-black/60 px-2 py-1 rounded-lg text-[10px] font-black italic">⭐ {d.rate}</div>
+                  </div>
+                  <div className="p-6 space-y-2">
+                    <p className="text-[10px] text-blue-500 font-black uppercase">{d.reg} • {d.cat}</p>
+                    <h4 className="font-black italic uppercase text-lg leading-tight">{d.name}</h4>
+                    <button className="w-full mt-4 py-3 bg-white/5 rounded-xl text-[10px] font-black uppercase hover:bg-blue-600 transition-all">Detail</button>
+                  </div>
                 </div>
-                <div className="hidden lg:flex gap-4">
-                   <button className="p-4 bg-white/5 rounded-xl"><Filter size={20}/></button>
-                   <button className="p-4 bg-white/5 rounded-xl"><Search size={20}/></button>
-                </div>
-             </div>
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                {DESTINATIONS.map(d => (
-                  <div key={d.id} className="bg-[#161b22] rounded-[2.5rem] overflow-hidden border border-white/5 group hover:border-blue-500/50 transition-all shadow-xl">
-                     <div className="h-48 relative overflow-hidden">
-                        <img src={d.img} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={d.name}/>
-                        <div className="absolute top-4 right-4 bg-black/60 px-2 py-1 rounded-lg flex items-center gap-1 text-[10px] font-black">
-                           <Star size={10} className="text-yellow-500 fill-yellow-500"/> {d.rate}
-                        </div>
-                     </div>
-                     <div className="p-6 space-y-2">
-                        <span className="text-[10px] font-black text-blue-500 uppercase">{d.cat} • {d.reg}</span>
-                        <h4 className="text-lg font-black italic uppercase leading-none">{d.name}</h4>
-                        <button className="w-full mt-4 py-3 bg-white/5 group-hover:bg-blue-600 rounded-xl text-[10px] font-black uppercase transition-all">Толығырақ</button>
-                     </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* BUDGET TAB */}
+        {tab === 'budget' && (
+          <div className="max-w-4xl mx-auto space-y-10">
+            <h2 className="text-6xl font-black italic uppercase text-center">Budget <span className="text-blue-600">Calc</span></h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                {Object.keys(budget).map(k => (
+                  <div key={k} className="bg-[#161b22] p-6 rounded-3xl border border-white/5">
+                    <label className="text-[10px] font-black uppercase text-slate-500">{k}</label>
+                    <input type="number" value={budget[k]} onChange={e => setBudget({...budget, [k]: e.target.value})} className="bg-transparent text-4xl font-black italic w-full outline-none" />
                   </div>
                 ))}
-             </div>
-          </div>
-        )}
-
-        {/* TAB 4: BUDGET */}
-        {tab === 'budget' && (
-          <div className="max-w-4xl mx-auto space-y-10 animate-in slide-in-from-bottom-5">
-             <h2 className="text-6xl font-black italic uppercase text-center text-blue-500">Budget Tool</h2>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-4">
-                   {['home', 'food', 'trans', 'other'].map(k => (
-                     <div key={k} className="bg-[#161b22] p-6 rounded-3xl border border-white/5">
-                        <label className="text-[10px] font-black uppercase text-slate-500 mb-2 block">{k}</label>
-                        <input 
-                          type="number" 
-                          value={budget[k]} 
-                          onChange={e => setBudget({...budget, [k]: e.target.value})} 
-                          className="bg-transparent text-4xl font-black italic w-full outline-none"
-                        />
-                     </div>
-                   ))}
+              </div>
+              <div className="bg-blue-600 rounded-[3rem] p-10 flex flex-col justify-between shadow-2xl">
+                <div>
+                  <h4 className="text-2xl font-black italic opacity-70 uppercase">Total Spent</h4>
+                  <div className="text-8xl font-black italic">{Object.values(budget).reduce((a, b) => Number(a) + Number(b), 0).toLocaleString()} ₸</div>
                 </div>
-                <div className="bg-blue-600 rounded-[3rem] p-10 flex flex-col justify-between shadow-2xl">
-                   <div>
-                      <h4 className="text-2xl font-black italic uppercase opacity-70">Total Expense</h4>
-                      <div className="text-7xl font-black italic">{calculateTotal().toLocaleString()} ₸</div>
-                   </div>
-                   <div className="space-y-4">
-                      <div className="h-2 bg-black/20 rounded-full overflow-hidden">
-                         <div className="h-full bg-white w-1/2"></div>
-                      </div>
-                      <button className="w-full py-5 bg-white text-black rounded-2xl font-black uppercase text-xs">Есепті сақтау</button>
-                   </div>
-                </div>
-             </div>
+                <button className="w-full py-5 bg-white text-black rounded-2xl font-black uppercase text-xs hover:bg-black hover:text-white transition-all">Save Report</button>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* OTHERS */}
-        {!['home', 'ai', 'dest', 'budget'].includes(tab) && (
-          <div className="h-full flex flex-col items-center justify-center space-y-6 opacity-20 grayscale">
-             <Smartphone size={100} className="animate-bounce" />
-             <h3 className="text-4xl font-black italic uppercase">{tab} Module Active</h3>
-             <p className="font-bold uppercase tracking-widest text-xs italic">Architect: Bekzhan</p>
-          </div>
-        )}
+        {/* WATERMARK */}
+        <div className="fixed bottom-10 right-10 opacity-5 text-8xl font-black italic pointer-events-none select-none uppercase">Bekzhan</div>
 
-        {/* FOOTER WATERMARK */}
-        <div className="fixed bottom-10 right-10 text-white/5 text-8xl font-black pointer-events-none italic uppercase select-none">BEKZHAN</div>
       </main>
     </div>
   );
