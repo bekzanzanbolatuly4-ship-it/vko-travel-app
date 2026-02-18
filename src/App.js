@@ -11,44 +11,20 @@ const App = () => {
   const [chatHistory, setChatHistory] = useState([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isAiLoading, setIsAiLoading] = useState(false);
-  const [mapMode, setMapMode] = useState('c05f771b-3f00-48e3-8515-2f63e6918f52');
   
+  // ОСЫ ЖЕРДЕ СЕНІҢ RENDER СІЛТЕМЕҢ ТҰРУЫ КЕРЕК
+  const API_URL = "https://vko-travel-app.onrender.com";
+
   const mapInstance = useRef(null);
   const chatEndRef = useRef(null);
 
   useEffect(() => {
-    axios.get('https://vko-travel-app.onrender.com/api/places')
+    axios.get(`${API_URL}/api/places`)
       .then(res => setPlaces(Array.isArray(res.data) ? res.data : []))
       .catch(() => setPlaces([]));
   }, []);
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatHistory, isAiLoading]);
-
-  // КАРТА ЛОГИКАСЫ
-  useEffect(() => {
-    if (activeTab === 'map') {
-      const initMap = async () => {
-        const container = document.getElementById('map-container');
-        if (!container || mapInstance.current) return;
-        const mapgl = await load();
-        mapInstance.current = new mapgl.Map('map-container', {
-          center: [82.61, 49.95], 
-          zoom: 12, 
-          pitch: 45,
-          key: '73ad6843-cc94-45d4-8e38-51d1ac9a92d8', 
-          style: mapMode
-        });
-        new mapgl.ZoomControl(mapInstance.current, { position: 'topRight' });
-        places.forEach(p => {
-          if(p.lon) new mapgl.Marker(mapInstance.current, { coordinates: [p.lon, p.lat], label: { text: p.name } });
-        });
-      };
-      setTimeout(initMap, 300);
-    } else if (mapInstance.current) {
-      mapInstance.current.destroy();
-      mapInstance.current = null;
-    }
-  }, [activeTab, mapMode, places]);
 
   const handleChat = async (e) => {
     const input = document.getElementById('chat-input');
@@ -58,7 +34,7 @@ const App = () => {
       input.value = '';
       setIsAiLoading(true);
       try {
-        const res = await axios.post('https://vko-travel-app.onrender.com/api/chat', { message: msg, lang: lang });
+        const res = await axios.post(`${API_URL}/api/chat`, { message: msg, lang: lang });
         setChatHistory(prev => [...prev, { role: 'ai', text: res.data.reply }]);
       } catch {
         setChatHistory(prev => [...prev, { role: 'ai', text: "Байланыс үзілді..." }]);
@@ -67,37 +43,24 @@ const App = () => {
   };
 
   const t = {
-    kz: { name: "VKO TRAVEL", creator: "Жанболатұлы Бекжан", slogan: "Шығыс маржанына саяхат", desc: "Алтайдың асқақ таулары мен Марқакөлдің мөлдір суын бізбен бірге ашыңыз.", home: "Басты бет", map: "Карта", places: "Көрікті жерлер", tours: "Турлар", hotels: "Отельдер", food: "Мейрамханалар", chat: "AI Ассистент", btn: "Бастау", ask: "Сұрақ қойыңыз..." },
-    ru: { name: "VKO TRAVEL", creator: "Жанболатұлы Бекжан", slogan: "Жемчужина Востока", desc: "Откройте величие Алтая и кристальные воды Маркаколя вместе с нами.", home: "Главная", map: "Карта", places: "Места", tours: "Туры", hotels: "Отели", food: "Рестораны", chat: "AI Гид", btn: "Начать", ask: "Задайте вопрос..." },
-    en: { name: "VKO TRAVEL", creator: "Zhanbolatuly Bekzhan", slogan: "Pearl of the East", desc: "Discover the majesty of Altai and the crystal waters of Markakol.", home: "Home", map: "Map", places: "Sightseeing", tours: "Tours", hotels: "Hotels", food: "Restaurants", chat: "AI Assistant", btn: "Explore", ask: "Ask anything..." }
-  }[lang];
+    kz: { name: "VKO TRAVEL", creator: "Бекжан", slogan: "Шығыс маржанына саяхат", desc: "Алтайдың асқақ таулары мен Марқакөлдің мөлдір суын бізбен бірге ашыңыз.", home: "Басты бет", map: "Карта", places: "Көрікті жерлер", tours: "Турлар", hotels: "Отельдер", food: "Мейрамханалар", chat: "AI Ассистент", btn: "Бастау", ask: "Сұрақ қойыңыз..." },
+    ru: { name: "VKO TRAVEL", creator: "Бекжан", slogan: "Жемчужина Востока", desc: "Откройте величие Алтая и кристальные воды Маркаколя вместе с нами.", home: "Главная", map: "Карта", places: "Места", tours: "Туры", hotels: "Отели", food: "Рестораны", chat: "AI Гид", btn: "Начать", ask: "Задайте вопрос..." }
+  }[lang] || { name: "VKO TRAVEL", creator: "Bekzhan", slogan: "Pearl of the East", desc: "Discover the majesty of Altai.", home: "Home", map: "Map", places: "Places", tours: "Tours", hotels: "Hotels", food: "Food", chat: "AI Assistant", btn: "Start", ask: "Ask..." };
 
   return (
     <div style={layoutStyle}>
-      {/* SIDEBAR */}
       <motion.aside animate={{ width: isSidebarOpen ? '280px' : '0px' }} style={sidebarStyle}>
         <div style={{ padding: '30px', width: '280px', opacity: isSidebarOpen ? 1 : 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
           <div style={logoContainer}><Sparkles color="#38bdf8" size={24} /><h1 style={logoText}>{t.name}</h1></div>
-          
           <div style={langSwitcher}>
-            {['kz', 'ru', 'en'].map(l => <button key={l} onClick={() => setLang(l)} style={langBtn(lang === l)}>{l.toUpperCase()}</button>)}
+            {['kz', 'ru'].map(l => <button key={l} onClick={() => setLang(l)} style={langBtn(lang === l)}>{l.toUpperCase()}</button>)}
           </div>
-
           <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
             <NavBtn label={t.home} icon={Home} act={activeTab === 'welcome'} onClick={() => setActiveTab('welcome')} />
-            <NavBtn label={t.map} icon={Layers} act={activeTab === 'map'} onClick={() => setActiveTab('map')} />
             <NavBtn label={t.places} icon={Star} act={activeTab === 'places'} onClick={() => setActiveTab('places')} />
-            <NavBtn label={t.tours} icon={Compass} act={activeTab === 'tours'} onClick={() => setActiveTab('tours')} />
-            <NavBtn label={t.hotels} icon={Hotel} act={activeTab === 'hotels'} onClick={() => setActiveTab('hotels')} />
-            <NavBtn label={t.food} icon={Utensils} act={activeTab === 'food'} onClick={() => setActiveTab('food')} />
             <NavBtn label={t.chat} icon={MessageSquare} act={activeTab === 'chat'} onClick={() => setActiveTab('chat')} />
           </nav>
-
-          {/* CREATOR SIGNATURE */}
-          <div style={creatorBox}>
-            <Award size={16} color="#38bdf8" />
-            <span>by {t.creator}</span>
-          </div>
+          <div style={creatorBox}><Award size={16} color="#38bdf8" /><span>by {t.creator}</span></div>
         </div>
       </motion.aside>
 
@@ -107,7 +70,6 @@ const App = () => {
 
       <main style={{ ...mainContent, marginLeft: isSidebarOpen ? '280px' : '0px' }}>
         <AnimatePresence mode="wait">
-          
           {activeTab === 'welcome' && (
             <motion.div key="w" initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={heroSection}>
               <div style={heroOverlay}></div>
@@ -119,29 +81,12 @@ const App = () => {
             </motion.div>
           )}
 
-          {activeTab === 'map' && (
-            <div key="m" style={{ height: '100%' }}>
-              <div style={mapControls}>
-                <button onClick={() => setMapMode('c05f771b-3f00-48e3-8515-2f63e6918f52')} style={modeBtn}>3D Mode</button>
-                <button onClick={() => setMapMode('sputnik')} style={modeBtn}>Satellite</button>
-              </div>
-              <div id="map-container" style={mapStyles}></div>
-            </div>
-          )}
-
           {activeTab === 'chat' && (
             <motion.div key="c" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={aiContainer}>
               <div style={aiHeader}><div style={aiStatus}></div><h3>{t.chat} (Llama 3.3 Turbo)</h3></div>
               <div style={chatBody}>
                 {chatHistory.map((m, i) => <div key={i} style={m.role === 'user' ? userMsg : aiMsg}>{m.text}</div>)}
-                {isAiLoading && (
-                  <motion.div style={aiMsg} animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1.5 }}>
-                    <div style={{display:'flex', gap:'5px'}}>
-                        <div className="dot"></div><div className="dot"></div><div className="dot"></div>
-                        Ойланып жатыр...
-                    </div>
-                  </motion.div>
-                )}
+                {isAiLoading && <div style={aiMsg}>Ойланып жатыр...</div>}
                 <div ref={chatEndRef} />
               </div>
               <div style={inputArea}>
@@ -151,31 +96,26 @@ const App = () => {
             </motion.div>
           )}
 
-          {['places', 'tours', 'hotels', 'food'].includes(activeTab) && (
+          {activeTab === 'places' && (
             <div style={gridStyle}>
               {places.map(p => (
                 <motion.div whileHover={{ y: -10 }} key={p.id} style={cardStyle}>
                   <img src={p.image} style={cardImg} alt="" />
                   <div style={{ padding: '20px' }}>
                     <h3 style={{ color: '#38bdf8', marginBottom: '10px' }}>{p.name}</h3>
-                    <p style={{ fontSize: '13px', color: '#94a3b8' }}>
-                        {activeTab === 'food' ? p.restaurants?.join(', ') : 
-                         activeTab === 'hotels' ? p.hotels?.join(', ') : 
-                         activeTab === 'tours' ? p.tours?.join(' → ') : p.desc}
-                    </p>
+                    <p style={{ fontSize: '13px', color: '#94a3b8' }}>{p.desc}</p>
                   </div>
                 </motion.div>
               ))}
             </div>
           )}
-
         </AnimatePresence>
       </main>
     </div>
   );
 };
 
-// --- STYLES (КӨШІРУГЕ ЫҢҒАЙЛЫ) ---
+// СТИЛЬДЕР (ӨЗГЕРІССІЗ ҚАЛА БЕРЕДІ)
 const layoutStyle = { display: 'flex', minHeight: '100vh', background: '#050a15', color: '#e2e8f0', fontFamily: 'Inter, sans-serif' };
 const sidebarStyle = { background: '#0a0f1d', borderRight: '1px solid rgba(56, 189, 248, 0.1)', position: 'fixed', height: '100vh', zIndex: 100, overflow: 'hidden' };
 const logoContainer = { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '30px' };
@@ -200,9 +140,6 @@ const aiMsg = { alignSelf: 'flex-start', background: '#161d2f', color: '#e2e8f0'
 const inputArea = { padding: '20px', display: 'flex', gap: '10px', background: '#0a0f1d' };
 const aiInput = { flex: 1, background: '#161d2f', border: '1px solid rgba(56, 189, 248, 0.2)', borderRadius: '15px', padding: '15px', color: '#fff', outline: 'none' };
 const sendBtn = { width: '55px', background: '#38bdf8', border: 'none', borderRadius: '15px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000' };
-const mapStyles = { width: '100%', height: '85vh', borderRadius: '30px', border: '1px solid #38bdf8' };
-const mapControls = { marginBottom: '10px', display: 'flex', gap: '10px' };
-const modeBtn = { padding: '8px 18px', background: '#0a0f1d', color: '#fff', border: '1px solid #38bdf8', borderRadius: '10px', cursor: 'pointer', fontSize: '12px' };
 const gridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '30px' };
 const cardStyle = { background: '#0a0f1d', borderRadius: '25px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' };
 const cardImg = { width: '100%', height: '220px', objectFit: 'cover' };
@@ -214,6 +151,3 @@ const NavBtn = ({ label, icon: Icon, act, onClick }) => (
 );
 
 export default App;
-
-
-
