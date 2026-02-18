@@ -17,7 +17,7 @@ const App = () => {
   const chatEndRef = useRef(null);
 
   useEffect(() => {
-    axios.get('https://vko-travel-app.onrender.com/')
+    axios.get('https://vko-travel-app.onrender.com/api/places')
       .then(res => setPlaces(Array.isArray(res.data) ? res.data : []))
       .catch(() => setPlaces([]));
   }, []);
@@ -58,7 +58,7 @@ const App = () => {
       input.value = '';
       setIsAiLoading(true);
       try {
-        const res = await axios.post('https://vko-travel-app.onrender.com/', { message: msg, lang: lang });
+        const res = await axios.post('https://vko-travel-app.onrender.com/api/chat', { message: msg, lang: lang });
         setChatHistory(prev => [...prev, { role: 'ai', text: res.data.reply }]);
       } catch {
         setChatHistory(prev => [...prev, { role: 'ai', text: "Байланыс үзілді..." }]);
@@ -214,5 +214,6 @@ const NavBtn = ({ label, icon: Icon, act, onClick }) => (
 );
 
 export default App;
+
 
 
