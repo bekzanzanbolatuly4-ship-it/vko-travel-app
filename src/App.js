@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Compass, Star, Hotel, Utensils, MessageSquare, Layers, Menu, ChevronLeft, Send, Sparkles, Award } from 'lucide-react';
+import { Home, Star, Hotel, MessageSquare, Menu, ChevronLeft, Send, Sparkles, Award } from 'lucide-react';
 import { load } from '@2gis/mapgl';
 
 const App = () => {
@@ -151,4 +151,5 @@ const NavBtn = ({ label, icon: Icon, act, onClick }) => (
 );
 
 export default App;
+
 
